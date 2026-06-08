@@ -7,6 +7,7 @@ const App = (() => {
   let currentMode    = 'teams';
   let activeGroup    = null;
   let activeTimeSlot = null;
+  // countdown handled by js/countdown.js
 
   function init() {
     // Group chips
@@ -43,6 +44,11 @@ const App = (() => {
     // Start live polling
     Live.init();
 
+  // Kickoff countdown for Group A — handled by Countdown module
+  if (window.Countdown && typeof window.Countdown.initKickoffCountdown === 'function') {
+    window.Countdown.initKickoffCountdown();
+  }
+
     setMode('teams');
   }
 
@@ -71,6 +77,8 @@ const App = (() => {
     else if (currentMode === 'bracket') Bracket.render();
     else TeamGrid.render({ mode: currentMode, activeGroup, activeTimeSlot });
   }
+
+  // countdown logic moved to js/countdown.js
 
   function setMode(mode) {
     currentMode = mode;
