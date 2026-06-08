@@ -66,10 +66,3 @@ To change styles:
 | 3rd Place Match | Jul 18 |
 | **Final** | **Jul 19** |
 
-## 🛠️ Built With
-- Pure HTML5 / CSS3 / Vanilla JavaScript (no frameworks, no build step)
-- Hosted free on GitHub Pages
-
-## 📄 License
-MIT — free to use and share.
-# World-Cup-2026
