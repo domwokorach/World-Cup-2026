@@ -1,8 +1,8 @@
 # 🏆 FIFA World Cup 2026 – Full Fixture Viewer
 
-Interactive viewer for all **104 matches** — Group Stage through the Final — in Bangladesh Time (BST, UTC+6).
+Interactive viewer for all **104 matches** — Group Stage through the Final
 
-## 🔴 [Live Site](https://chyfarhanjamil.github.io/test-wc2026-fixtures/)
+## 🔴 [Live Site](https://world-cup-2026-gold.vercel.app/)
 
 ## ✨ Features
 - All 48 teams across Groups A–L (Group Stage)
