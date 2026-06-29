@@ -1,8 +1,31 @@
 # 🏆 FIFA World Cup 2026 – Full Fixture Viewer
 
-Interactive viewer for all **104 matches** — Group Stage through the Final
+Interactive viewer for all **104 matches** — Group Stage through the Final, backed by static JSON refreshed by CI
 
 ## 🔴 [Live Site](https://world-cup-2026-gold.vercel.app/)
+
+## 📡 Data sources & refresh policy
+
+All published data comes from free, authoritative sources:
+
+| Source | Provides |
+|--------|----------|
+| FIFA public API | Fixtures, scores, line-ups, referees, localized names, world ranking |
+| Wikipedia | Official 26-player squads (numbers, caps, goals, clubs, coaches) |
+| Open-Meteo | Hourly stadium weather forecasts and base-camp geocoding |
+| martj42/international_results (CC0) | Historical results feeding the Elo win-probability model |
+| Hand-curated files | Venues, broadcasters, base camps, climate normals, team colours |
+
+Automatic updates are handled by GitHub Actions:
+
+- every 15 minutes while matches are being played
+- line-ups pull 10 minutes before each kick-off
+- daily at 00:00 New York time
+- every update is sanity-checked before publishing and triggers a site redeploy
+
+Scores are semi-live, not real-time: they typically trail the broadcast by up to ~15 minutes. The app is static JSON refreshed by CI, with no servers, sockets, or push infrastructure.
+
+For local live scores, create an ignored `js/live-config.json` file with `{"apiKey":"..."}` or set `window.LIVE_API_KEY` before `js/live.js` loads.
 
 ## ✨ Features
 - All 48 teams across Groups A–L (Group Stage)
@@ -65,4 +88,3 @@ To change styles:
 | Semi-Finals | Jul 14 – Jul 15 |
 | 3rd Place Match | Jul 18 |
 | **Final** | **Jul 19** |
-

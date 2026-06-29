@@ -1,0 +1,4 @@
+js/live-config.json
+.env
+.env.*
+*.local

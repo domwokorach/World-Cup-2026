@@ -1,23 +1,62 @@
 /**
  * live.js — Real-time data from football-data.org
  * Free key: https://www.football-data.org/client/register
- * Paste key in API_KEY below for live scores, results, scorers.
+ * Load the key from window.LIVE_API_KEY, localStorage, or js/live-config.json.
  */
 'use strict';
 
 const Live = (() => {
-  const API_KEY  = '';   // ← paste your key here
+  const CONFIG_PATH = 'js/live-config.json';
   const COMP_ID  = 2000;
   const SEASON   = 2026;
   const POLL_MS  = 60000;
   const LIVE_MS  = 30000;
 
+  let API_KEY    = '';
   let liveData   = {};   // keyed by "local_<staticId>"
   let listeners  = [];
-  let hasKey     = !!API_KEY;
+  let hasKey     = false;
+
+  function normalizeKey(value) {
+    return typeof value === 'string' ? value.trim() : '';
+  }
+
+  function readInjectedKey() {
+    if (typeof window === 'undefined') return '';
+    return normalizeKey(window.LIVE_API_KEY || window.__LIVE_API_KEY__ || '');
+  }
+
+  function readStoredKey() {
+    if (typeof window === 'undefined' || !window.localStorage) return '';
+    return normalizeKey(window.localStorage.getItem('LIVE_API_KEY'));
+  }
+
+  async function loadApiKey() {
+    const injectedKey = readInjectedKey();
+    if (injectedKey) return injectedKey;
+
+    const storedKey = readStoredKey();
+    if (storedKey) return storedKey;
+
+    try {
+      const response = await fetch(CONFIG_PATH, { cache: 'no-store' });
+      if (!response.ok) return '';
+
+      const config = await response.json();
+      return normalizeKey(config.apiKey || config.API_KEY || config.token);
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        console.warn('[Live] Invalid JSON in js/live-config.json:', error.message);
+      }
+      return '';
+    }
+  }
 
   // ── INIT ─────────────────────────────────────────────────────────────
-  function init() {
+  async function init() {
+    API_KEY = await loadApiKey();
+    hasKey = !!API_KEY;
+
     if (!hasKey) { setBanner('static'); return; }
     setBanner('loading');
     fetchAll().then(() => {
@@ -67,6 +106,24 @@ const Live = (() => {
       .replace('united states','usa');
   }
 
+  function stageFromApi(stage) {
+    const map = {
+      GROUP_STAGE: 'group',
+      LAST_32: 'r32',
+      LAST_16: 'r16',
+      QUARTER_FINALS: 'qf',
+      SEMI_FINALS: 'sf',
+      THIRD_PLACE: '3rd',
+      FINAL: 'final',
+    };
+    return map[stage] || null;
+  }
+
+  function minuteKey(iso) {
+    if (!iso) return '';
+    return String(iso).slice(0, 16);
+  }
+
   function ingest(matches) {
     matches.forEach(m => {
       const ft      = m.score?.fullTime || {};
@@ -91,12 +148,27 @@ const Live = (() => {
       // Match to our static fixtures by canonicalised name
       const hc = canon(m.homeTeam?.name || '');
       const ac = canon(m.awayTeam?.name || '');
-      WC2026.FIXTURES.forEach(f => {
-        if (f.stage !== 'group') return; // only group stage has firm names
-        if (canon(f.home) === hc && canon(f.away) === ac) {
-          liveData[`local_${f.id}`] = payload;
-        }
-      });
+      const groupFixture = WC2026.FIXTURES.find(f =>
+        f.stage === 'group' &&
+        canon(f.home) === hc &&
+        canon(f.away) === ac
+      );
+      if (groupFixture) {
+        liveData[`local_${groupFixture.id}`] = payload;
+        return;
+      }
+
+      // Knockout placeholders don't have fixed team names; match by stage + kickoff minute.
+      const stage = stageFromApi(m.stage);
+      if (!stage || stage === 'group') return;
+
+      const apiKickoffKey = minuteKey(m.utcDate);
+      const knockoutFixture = WC2026.FIXTURES.find(f =>
+        f.stage === stage && minuteKey(f.utc) === apiKickoffKey
+      );
+      if (knockoutFixture) {
+        liveData[`local_${knockoutFixture.id}`] = payload;
+      }
     });
   }
 
@@ -137,12 +209,13 @@ const Live = (() => {
     const el = document.getElementById('liveBanner');
     if (!el) return;
     const msgs = {
-      static:  '📋 Using static fixture data. <a href="https://www.football-data.org/client/register" target="_blank" style="color:var(--gold)">Get a free API key</a> and paste it in js/live.js for live scores & results.',
+      static:  '📋 Using static fixture data. Create <code>js/live-config.json</code> with <code>{"apiKey":"..."}</code>, or set <code>window.LIVE_API_KEY</code>, to enable live scores.',
       loading: '⏳ Connecting to live data feed…',
       live:    '🟢 Live data active — scores & results update every 60s.',
-      error:   '⚠️ API error — check your key in js/live.js. Showing static data.',
+      error:   '⚠️ API error — check your local API key config. Showing static data.',
     };
     el.className = `live-banner live-banner--${type}`;
+    el.style.display = 'block';
     el.innerHTML = `<span>${msgs[type]}</span>`;
     if (type === 'live') setTimeout(() => el.classList.add('live-banner--hidden'), 6000);
   }
